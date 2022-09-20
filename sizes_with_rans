@@ -1,0 +1,10 @@
+Gaussian:
+Expected signature size & 1712 & 1778 & 2339 & 2426 & 3428 & 3559
+\\
+Best signature size & 1672 & 1737 & 2284 & 2372 & 3347 & 3478
+
+Hyperball-uniform:
+Expected signature size & 1996 & 2838 & 4181
+\\
+Best signature size & 1900 & 2710 & 3989
+
