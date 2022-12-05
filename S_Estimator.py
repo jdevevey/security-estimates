@@ -36,10 +36,10 @@ n=256
 ######### Parameters ########
 #############################
 
-eta = 2
-k = 8
-l = 6
-tau = 39
+eta = 1
+k = 4
+l = 5
+tau = 49
 
 def S_estimate(N,n,l,eta):
     """

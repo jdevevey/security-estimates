@@ -2,7 +2,7 @@ from MSIS_security import MSIS_summarize_attacks, MSISParameterSet
 from MLWE_security import MLWE_summarize_attacks, MLWEParameterSet
 from math import sqrt, log, pi, floor
 from scipy.special import betaincinv, gammaln
-from entropy_coordinate_hyperball import compute_entropy_coordinate
+from entropy_coordinate_hyperball import compute_entropy_coordinate, compute_high_entropy
 
 # This script supports the experimental section of AC22 submission titled
 # "On Rejection Sampling in Lyubashevsky's Signature Scheme" 
@@ -22,9 +22,9 @@ from entropy_coordinate_hyperball import compute_entropy_coordinate
 #The key recovery estimator is much slower than the others and should be toggled off when k,l and eta are unchanged
 # weak_uf by default as this is the default in Table 1 of Dilithium-NIST
 weak_uf = True
-strong_uf = weak_uf
+strong_uf = True
 key_recovery = True
-size = True
+size = False
 
 
 
@@ -33,7 +33,7 @@ size = True
 #"gaussian" means discrete integer Gaussian
 #"hyperball" means (continuous) uniform in a hyperball
 variants = ["uniform",
-            "gaussian-eprint",
+            #"gaussian-eprint",
             "gaussian",
             "hyperball"
            ]
@@ -93,10 +93,29 @@ class GaussianDilithiumParameterSet(object):
         # SIS ell_2 bound for strong unforgeability
         self.zeta_prime = 2*self.B
         self.delta = log(self.sigma,2)
+        if (self.zeta > self.q):
+            print("Warning, zeta too big.", self.zeta, self.q)
+        if(self.zeta_prime > self.q):
+            print("Warning, zeta prime too big.")
+
 
 
 class HyperballDilithiumParameterSet(object): 
     def __init__(self, n, k, l, S, gamma2, tau, q, eta, pkdrop=0):
+
+        #These values are computed using
+        #https://keisan.casio.com/exec/system/1180573395
+        #The Maple file cut.mw checks that these values correspond to admissible cut (i.e. have measure <= 2**-63=2eps)
+        cut = { 256*6 : 1-0.947753, 
+                256*7 : 1-0.955045,
+                256*8 : 1-0.960550,
+                256*9 : 1-0.964854,
+                256*10 : 1-0.968312,
+                256*11 : 1-0.971150,
+                256*12 : 1-0.973522,
+                256*13 : 1-0.975533,
+                256*14 : 1-0.977260}
+
         self.n = n
         self.k = k
         self.l = l
@@ -109,18 +128,22 @@ class HyperballDilithiumParameterSet(object):
         #ell_2 bound on the shift
         self.m = self.n*(self.k+self.l)
         # cut is the 1/eta^2 from Lemma 5.1 of the submission
-        self.cut = 1-betaincinv((self.m+1)/2,1/2,2**(-63))
+        self.cut = cut[self.m]
         self.gamma1 = (sqrt(self.cut)+sqrt(self.cut+16**(1/self.m)-1))/(16**(1/self.m)-1)*self.beta 
         #Using Lemma 4.1 from the submission
         self.q = q
         self.eta = eta
         self.pkdrop = pkdrop
         self.gamma2 = gamma2
-        self.B = sqrt(self.gamma1**2+4**(self.pkdrop-1)*(self.tau*self.n*self.k))
+        self.B = sqrt(1.05*self.gamma1**2+4**(self.pkdrop-1)*(self.tau*self.n*self.k))
         # SIS ell_2 bound for unforgeability
         self.zeta = self.B
         # SIS ell_2 bound for strong unforgeability
         self.zeta_prime = 2*self.B
+        if (self.zeta > self.q):
+            print("Warning, zeta too big.")
+        if(self.zeta_prime > self.q):
+            print("Warning, zeta prime too big.")
 
 
 n = 256
@@ -138,7 +161,6 @@ UnifMediumDilithium           = UniformDilithiumParameterSet(n, 4, 4, 2**17, (q-
 UnifRecommendedDilithium      = UniformDilithiumParameterSet(n, 6, 5, 2**19, (q-1)/32, 49, q, 4, 55, pkdrop=13)
 UnifVeryHighDilithium         = UniformDilithiumParameterSet(n, 8, 7, 2**19, (q-1)/32, 60, q, 2, 75, pkdrop=13)
 
-
 # Parameters taken from Table 2 of Dilithium-G
 # old=true means the 11 constant is chosen for sigma, rather than its improved value (6.85)
 GaussianDilithiumEprint1           = GaussianDilithiumParameterSet(n, 2, 2, 230,    (q-1)/512, 60, q, 7, pkdrop=11, old=True)
@@ -147,32 +169,23 @@ GaussianDilithiumEprint3           = GaussianDilithiumParameterSet(n, 4, 4, 210,
 GaussianDilithiumEprint4           = GaussianDilithiumParameterSet(n, 5, 5, 145,    (q-1)/512, 60, q, 3, pkdrop=11, old=True)
 
 
-q = 1038337
-# Maple code: q := 1038337: n:=256: l := numelems((Factors(x^n + 1) mod q)[2]): isprime(q), l, ifactor(q-1);
-# Maple answer is "true, 256, 2^11*3*13^2"
+q = 918529
 
-#q = 520193#238081 #202753 #125441 #520193 #254977
+GaussianMediumDilithium_old        = GaussianDilithiumParameterSet(n, 3, 4, 50,    (q-1)/256,  39, q, 1, pkdrop=12, old=True)
+GaussianRecommendedDilithium_old   = GaussianDilithiumParameterSet(n, 4, 5, 55,    (q-1)/256,  49, q, 1, pkdrop=11, old=True)
+GaussianVeryHighDilithium_old      = GaussianDilithiumParameterSet(n, 6, 7, 65,    (q-1)/128,  60, q, 1, pkdrop=11, old=True)
 
-q = 238081
+q = 758273
 
-GaussianMediumDilithium            = GaussianDilithiumParameterSet(n, 4, 3, 91,    (q-1)/156, 39, q, 2, pkdrop=13)
-GaussianMediumDilithium_old        = GaussianDilithiumParameterSet(n, 4, 3, 91,    (q-1)/78,  39, q, 2, pkdrop=13, old=True)
+GaussianMediumDilithium            = GaussianDilithiumParameterSet(n, 3, 4, 50,    (q-1)/256, 39, q, 1, pkdrop=12)
+GaussianRecommendedDilithium       = GaussianDilithiumParameterSet(n, 4, 5, 55,    (q-1)/256,  49, q, 1, pkdrop=11)
+GaussianVeryHighDilithium          = GaussianDilithiumParameterSet(n, 6, 7, 65,    (q-1)/256, 60, q, 1, pkdrop=11)
 
-HyperballMediumDilithium          = HyperballDilithiumParameterSet(n, 4, 3, 91,    (q-1)/156, 39, q, 2, pkdrop=10)
+q = 520193
 
-q = 254977
-
-GaussianRecommendedDilithium       = GaussianDilithiumParameterSet(n, 5, 4, 134,    (q-1)/96,  49, q, 3, pkdrop=11)
-GaussianRecommendedDilithium_old   = GaussianDilithiumParameterSet(n, 5, 4, 134,    (q-1)/48,  49, q, 3, pkdrop=10,old=True)
-
-HyperballRecommendedDilithium     = HyperballDilithiumParameterSet(n, 6, 4, 140,    (q-1)/96,  49, q, 3, pkdrop=12)
-
-q = 254977
-
-GaussianVeryHighDilithium          = GaussianDilithiumParameterSet(n, 7, 6, 111,    (q-1)/156, 60, q, 2, pkdrop=12)
-GaussianVeryHighDilithium_old      = GaussianDilithiumParameterSet(n, 7, 6, 111,    (q-1)/78,  60, q, 2, pkdrop=11,old=True)
-
-HyperballVeryHighDilithium        = HyperballDilithiumParameterSet(n, 8, 6, 115,    (q-1)/156, 60, q, 2, pkdrop=11)
+HyperballMediumDilithium          = HyperballDilithiumParameterSet(n, 3, 4, 50,    (q-1)/256, 39, q, 1, pkdrop=11)
+HyperballRecommendedDilithium     = HyperballDilithiumParameterSet(n, 4, 5, 55,    (q-1)/256,  49, q, 1, pkdrop=11)
+HyperballVeryHighDilithium        = HyperballDilithiumParameterSet(n, 6, 7, 65,    (q-1)/128, 60, q, 1, pkdrop=10)
 
 
 all_params_uniform = [("Uniform Dilithium Medium", UnifMediumDilithium),
@@ -190,8 +203,8 @@ all_params_gaussian = [("Gaussian Dilithium Medium", GaussianMediumDilithium),
                       ]
 
 all_params_hyperball = [("Hyperball Dilithium Medium", HyperballMediumDilithium),
-                         ("Hyperball Dilithium Recommended", HyperballRecommendedDilithium),
-                         ("Hyperball Dilithium Very High", HyperballVeryHighDilithium),
+                        ("Hyperball Dilithium Recommended", HyperballRecommendedDilithium),
+                        ("Hyperball Dilithium Very High", HyperballVeryHighDilithium),
                         ]
 
 all_params = { "uniform" : all_params_uniform,
@@ -244,7 +257,7 @@ def Dilithium_Signature_Size(dps):
     else:
         m = dps.n*(dps.l+dps.k)
         #Keep same approximation as Gaussians for shape of h
-        size_c_h = size_c + 2.5*dps.n*dps.k 
+        size_c_h = size_c + compute_high_entropy(m,floor(dps.gamma1),floor(dps.gamma2))*dps.n*dps.k 
         return size_c_h + (compute_entropy_coordinate(m,floor(dps.gamma1))+1)*dps.n*dps.l #Huffman coding of each coordinate.
 
 def Dilithium_Entropy(dps):
@@ -265,7 +278,7 @@ def Dilithium_Entropy(dps):
     else:
         m = dps.n*(dps.l+dps.k)
         #Keep same approximation as Gaussians for shape of h
-        size_c_h = size_c + 2.5*dps.n*dps.k 
+        size_c_h = size_c + compute_high_entropy(m,floor(dps.gamma1),floor(dps.gamma2))*dps.n*dps.k #2.5*dps.n*dps.k
         return size_c_h + (compute_entropy_coordinate(m,floor(dps.gamma1)))*dps.n*dps.l #rANS coding of each coordinate.
 
 
@@ -363,6 +376,4 @@ for distribution in variants:
     print("Expected public key size"+"".join([" & "+str(int(table_pk[distribution][i]/8)) for i in range(len(all_params[distribution]))]))
     print("\\\\")
     print("\\hline")
-    print("========================")
-
-
+    print("========================") 

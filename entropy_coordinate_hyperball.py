@@ -36,6 +36,26 @@ def compute_entropy_coordinate(m,r):
     prob[count] = prob_slab(m,r,r-1/2,r);
     return -np.sum(xlog2x(prob));
 
+# Computes the entropy of the high bits
+def compute_high_entropy(m,r,a):
+    #low_prob = [0 for i in range(a)]
+    prob = np.zeros(int((r+a/2)//a-(-r+a/2)//a+1))
+    shift = int((-r+a/2)//a)
+    #count = 0
+    curr_p = prob_slab(m,r,-r,-r+1/2)
+    #low_prob[(-r)%2**a] += curr_p
+    prob[int((-r+a/2)//a)-shift] += curr_p
+    #count += 1
+    for i in range(-r+1,r):
+        curr_p = prob_slab(m,r,i-1/2,i+1/2)
+        #low_prob[(i)%a] += curr_p
+        prob[int((i+a/2)//a)-shift] += curr_p
+    curr_p = prob_slab(m,r,r-1/2,r)
+    #low_prob[r%a] += curr_p
+    prob[int((r+a/2)//a)-shift] += curr_p
+    return -sum([(p+1e-16)*np.log(p+1e-16)/np.log(2) for p in prob])
+    
+
 #k    = 4
 #l    = 3
 #S    = 91

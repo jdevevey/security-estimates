@@ -18,7 +18,7 @@ def svp_plausible(b):
 def svp_quantum(b):
     """ log_2 of best plausible Quantum Cost of SVP in dimension b
     """
-    return b *log(sqrt(13./9))/log(2)   # .265 * b  [Laarhoven Thesis]
+    return b *0.257   # .257 * b  [Chailloux Loyer '21]
 
 
 def svp_classical(b):
